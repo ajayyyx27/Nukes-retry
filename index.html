@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Attendance Tracker</title>
+    
+    <!-- App Icon (The Progress Shield - SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%234F46E5'/><stop offset='100%25' style='stop-color:%2306B6D4'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23g)'/><circle cx='50' cy='50' r='38' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='5' stroke-dasharray='180 240' stroke-linecap='round'/><path d='M30 55 L45 70 L75 35' stroke='white' stroke-width='9' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json,{%22name%22:%22Attendance%20Tracker%22,%22short_name%22:%22Attendance%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22background_color%22:%22%231a1a2e%22,%22theme_color%22:%22%234F46E5%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%234F46E5'/><stop offset='100%25' style='stop-color:%2306B6D4'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23g)'/><circle cx='50' cy='50' r='38' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='5' stroke-dasharray='180 240' stroke-linecap='round'/><path d='M30 55 L45 70 L75 35' stroke='white' stroke-width='9' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}">
+    
+    <style>
+        /* ============================================
+                   GLOBAL STYLES & DARK MODE (AMOLED)
+                   ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252540;
+            --text: #e8e8f0;
+            --text-muted: #8899aa;
+            --primary: #4F46E5;
+            --primary-glow: #06B6D4;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --orange: #f59e0b;
+            --border: #2a2a44;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            --radius: 20px;
+            --radius-sm: 12px;
+        }
+
+        /* Light mode override (system preference) */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f0f2f8;
+                --bg-card: #ffffff;
+                --bg-card-hover: #f5f7ff;
+                --text: #1a1a2e;
+                --text-muted: #555577;
+                --border: #d0d5e0;
+                --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px 16px 100px 16px;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* ============================================
+                   SCROLLBAR
+                   ============================================ */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* ============================================
+                   UTILITY
+                   ============================================ */
+        .hidden {
+            display: none !important;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .mt-2 {
+            margin-top: 12px;
+        }
+        .mb-2 {
+            margin-bottom: 12px;
+        }
+        .flex {
+            display: flex;
+        }
+        .flex-col {
+            flex-direction: column;
+        }
+        .items-center {
+            align-items: center;
+        }
+        .justify-between {
+            justify-content: space-between;
+        }
+        .gap-2 {
+            gap: 12px;
+        }
+        .gap-1 {
+            gap: 8px;
+        }
+        .wrap {
+            flex-wrap: wrap;
+        }
+
+        /* ============================================
+                   HEADER
+                   ============================================ */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 16px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .header-actions button {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .header-actions button:active {
+            transform: scale(0.95);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ============================================
+                   CARDS
+                   ============================================ */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 18px 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: 0.3s;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        /* ============================================
+                   TODAY'S LOGGER (6 Circles)
+                   ============================================ */
+        .hour-grid {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 6px 0;
+        }
+        .hour-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hour-btn:active {
+            transform: scale(0.92);
+        }
+        .hour-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+        }
+        .hour-btn.logged {
+            background: var(--green);
+            border-color: var(--green);
+            color: white;
+        }
+        .hour-btn.lab {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: white;
+            width: auto;
+            padding: 0 16px;
+            border-radius: 30px;
+            font-size: 13px;
+        }
+
+        .log-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+        .log-actions button {
+            padding: 10px 24px;
+            border-radius: 30px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .log-actions button:active {
+            transform: scale(0.95);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-green {
+            background: var(--green);
+            color: white;
+        }
+        .btn-red {
+            background: var(--red);
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text);
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12px;
+        }
+
+        .today-status {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+        }
+        .today-status strong {
+            color: var(--text);
+        }
+
+        /* ============================================
+                   SUBJECT CHECKBOXES (for logging)
+                   ============================================ */
+        .subject-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        .subject-chip {
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 2px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            user-select: none;
+        }
+        .subject-chip:active {
+            transform: scale(0.95);
+        }
+        .subject-chip.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .subject-chip.lab-chip {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: white;
+        }
+        .subject-chip.lab-chip.checked {
+            background: var(--green);
+            border-color: var(--green);
+        }
+        .subject-chip.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ============================================
+                   STATS CARDS
+                   ============================================ */
+        .stat-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            flex: 1;
+            min-width: 60px;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+        }
+        .stat-number.green {
+            color: var(--green);
+        }
+        .stat-number.red {
+            color: var(--red);
+        }
+        .stat-number.yellow {
+            color: var(--yellow);
+        }
+        .stat-number.blue {
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Progress Ring */
+        .ring-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0%, var(--text-muted) 0%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: background 0.5s;
+        }
+        .ring-inner {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .ring-percent {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .ring-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .ring-status {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+            padding: 2px 14px;
+            border-radius: 20px;
+        }
+        .ring-status.safe {
+            color: var(--green);
+            background: rgba(34, 197, 94, 0.15);
+        }
+        .ring-status.danger {
+            color: var(--red);
+            background: rgba(239, 68, 68, 0.15);
+        }
+        .ring-status.warning {
+            color: var(--yellow);
+            background: rgba(234, 179, 8, 0.15);
+        }
+
+        /* ============================================
+                   SUBJECT LIST (Analytics)
+                   ============================================ */
+        .subject-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .subject-stat:last-child {
+            border-bottom: none;
+        }
+        .subject-stat .name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .subject-stat .pct {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .subject-stat .pct.green {
+            color: var(--green);
+        }
+        .subject-stat .pct.red {
+            color: var(--red);
+        }
+        .subject-stat .pct.yellow {
+            color: var(--yellow);
+        }
+        .subject-stat .bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 0 12px;
+            overflow: hidden;
+        }
+        .subject-stat .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+        .subject-stat .bar-fill.green {
+            background: var(--green);
+        }
+        .subject-stat .bar-fill.red {
+            background: var(--red);
+        }
+        .subject-stat .bar-fill.yellow {
+            background: var(--yellow);
+        }
+
+        /* ============================================
+                   CALENDAR
+                   ============================================ */
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .calendar-nav button {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .calendar-nav button:active {
+            transform: scale(0.95);
+        }
+        .calendar-nav .month-label {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-grid .day-label {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 4px 0;
+        }
+        .calendar-grid .day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: 0.15s;
+            position: relative;
+            min-height: 36px;
+        }
+        .calendar-grid .day-cell:active {
+            transform: scale(0.9);
+        }
+        .calendar-grid .day-cell.future {
+            opacity: 0.3;
+            cursor: default;
+        }
+        .calendar-grid .day-cell.weekend {
+            opacity: 0.2;
+            cursor: default;
+        }
+        .calendar-grid .day-cell.today {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(79, 70, 229, 0.3);
+        }
+        /* Color coding */
+        .calendar-grid .day-cell.green {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: var(--green);
+        }
+        .calendar-grid .day-cell.yellow {
+            background: rgba(234, 179, 8, 0.25);
+            border-color: var(--yellow);
+        }
+        .calendar-grid .day-cell.orange {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: var(--orange);
+        }
+        .calendar-grid .day-cell.red {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: var(--red);
+        }
+        .calendar-grid .day-cell.excused {
+            background: rgba(79, 70, 229, 0.15);
+            border-color: var(--primary);
+            border-style: dashed;
+        }
+        .calendar-grid .day-cell .edit-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            font-size: 10px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ============================================
+                   TARGET CARD (75% Calculator)
+                   ============================================ */
+        .target-big {
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+        }
+        .target-big .safe {
+            color: var(--green);
+        }
+        .target-big .danger {
+            color: var(--red);
+        }
+        .target-detail {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* ============================================
+                   BADGES (Streak / Perfect Days)
+                   ============================================ */
+        .badge-row {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .badge-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            background: var(--bg);
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+        }
+        .badge-item .icon {
+            font-size: 18px;
+        }
+        .badge-item .num {
+            font-weight: 700;
+        }
+
+        /* ============================================
+                   TIMETABLE WIDGET ("Next Period")
+                   ============================================ */
+        .next-class {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--primary);
+        }
+        .next-class .time {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .next-class .subject {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .next-class .
