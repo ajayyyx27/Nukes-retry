@@ -606,4 +606,807 @@
             </div>
             <div class="settings-field">
                 <label>GitHub Token (for backup)</label>
-                <input type="password" id="g
+                <input type="password" id="githubToken" placeholder="Enter your GitHub Token">
+            </div>
+            <div class="settings-field">
+                <label>GitHub Repo (username/repo)</label>
+                <input type="text" id="githubRepo" placeholder="ajayyyx27/Nukes-retry">
+            </div>
+            
+            <div class="btn-row" style="flex-wrap:wrap;">
+                <button class="btn-outline" onclick="closeSettings()" style="flex:1;">Close</button>
+                <button class="btn-primary" onclick="saveSettings()" style="flex:1;">Save</button>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn-red" onclick="resetAllData()" style="padding:8px 20px;border:none;border-radius:30px;font-weight:600;cursor:pointer;width:100%;">🗑️ Reset All Data</button>
+            </div>
+            <div style="margin-top:8px;">
+                <button class="btn-primary" onclick="backupToGitHub()" style="padding:8px 20px;border:none;border-radius:30px;font-weight:600;cursor:pointer;width:100%;">☁️ Backup to GitHub</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+        console.log('🚀 Starting Attendance Tracker...');
+        
+        const DEFAULT_DATA = {
+            semesters: [{
+                id: 'sem1',
+                name: 'B.Tech II Year I Sem',
+                startDate: '2026-07-27',
+                endDate: '2026-12-28',
+                records: {},
+                excusedDays: {}
+            }],
+            activeSemesterId: 'sem1',
+            settings: {
+                workingDays: 'monday',
+                githubToken: '',
+                githubRepo: ''
+            }
+        };
+
+        const TIMETABLE = {
+            'Monday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'CRT', type: 'theory', code: 'CRT' },
+                    { period: 2, time: '10:00-11:00', subject: 'Free', type: 'free', code: null },
+                    { period: 3, time: '11:00-12:00', subject: 'COA', type: 'theory', code: 'COA' },
+                    { period: 4, time: '12:10-1:10', subject: 'E-BOX Lab', type: 'lab', code: 'EBOX' },
+                    { period: 5, time: '1:55-2:55', subject: 'E-BOX Lab', type: 'lab', code: 'EBOX' },
+                    { period: 6, time: '2:55-3:55', subject: 'E-BOX Lab', type: 'lab', code: 'EBOX' }
+                ]
+            },
+            'Tuesday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'EEE Lab', type: 'lab', code: 'EEE' },
+                    { period: 2, time: '10:00-11:00', subject: 'EEE Lab', type: 'lab', code: 'EEE' },
+                    { period: 3, time: '11:00-12:00', subject: 'Mentoring', type: 'theory', code: 'MENTOR' },
+                    { period: 4, time: '12:10-1:10', subject: 'Lunch', type: 'free', code: null },
+                    { period: 5, time: '1:55-2:55', subject: 'OOPJ', type: 'theory', code: 'OOPJ' },
+                    { period: 6, time: '2:55-3:55', subject: 'IE', type: 'theory', code: 'IE' }
+                ]
+            },
+            'Wednesday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'DBMS', type: 'theory', code: 'DBMS' },
+                    { period: 2, time: '10:00-11:00', subject: 'DM', type: 'theory', code: 'DM' },
+                    { period: 3, time: '11:00-12:00', subject: 'Break', type: 'free', code: null },
+                    { period: 4, time: '12:10-1:10', subject: 'BEEE', type: 'theory', code: 'BEEE' },
+                    { period: 5, time: '1:55-2:55', subject: 'OOPJ Lab', type: 'lab', code: 'OOPJ_LAB' },
+                    { period: 6, time: '2:55-3:55', subject: 'OOPJ Lab', type: 'lab', code: 'OOPJ_LAB' }
+                ]
+            },
+            'Thursday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'COA', type: 'theory', code: 'COA' },
+                    { period: 2, time: '10:00-11:00', subject: 'BEEE', type: 'theory', code: 'BEEE' },
+                    { period: 3, time: '11:00-12:00', subject: 'DBMS', type: 'theory', code: 'DBMS' },
+                    { period: 4, time: '12:10-1:10', subject: 'MongoDB Lab', type: 'lab', code: 'MONGODB' },
+                    { period: 5, time: '1:55-2:55', subject: 'MongoDB Lab', type: 'lab', code: 'MONGODB' },
+                    { period: 6, time: '2:55-3:55', subject: 'MongoDB Lab', type: 'lab', code: 'MONGODB' }
+                ]
+            },
+            'Friday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'OOPJ', type: 'theory', code: 'OOPJ' },
+                    { period: 2, time: '10:00-11:00', subject: 'IE', type: 'theory', code: 'IE' },
+                    { period: 3, time: '11:00-12:00', subject: 'DBMS Lab', type: 'lab', code: 'DBMS_LAB' },
+                    { period: 4, time: '12:10-1:10', subject: 'DBMS Lab', type: 'lab', code: 'DBMS_LAB' },
+                    { period: 5, time: '1:55-2:55', subject: 'DM', type: 'theory', code: 'DM' },
+                    { period: 6, time: '2:55-3:55', subject: 'Sports', type: 'free', code: null }
+                ]
+            },
+            'Saturday': {
+                periods: [
+                    { period: 1, time: '9:00-10:00', subject: 'BEEE', type: 'theory', code: 'BEEE' },
+                    { period: 2, time: '10:00-11:00', subject: 'OOPJ', type: 'theory', code: 'OOPJ' },
+                    { period: 3, time: '11:00-12:00', subject: 'DM', type: 'theory', code: 'DM' },
+                    { period: 4, time: '12:10-1:10', subject: 'DBMS', type: 'theory', code: 'DBMS' },
+                    { period: 5, time: '1:55-2:55', subject: 'IE', type: 'theory', code: 'IE' },
+                    { period: 6, time: '2:55-3:55', subject: 'COA', type: 'theory', code: 'COA' }
+                ]
+            }
+        };
+
+        const SUBJECT_NAMES = {
+            'DM': 'Discrete Maths',
+            'COA': 'COA',
+            'OOPJ': 'Java',
+            'BEEE': 'BEEE',
+            'DBMS': 'DBMS',
+            'IE': 'I&E',
+            'EBOX': 'E-BOX Lab',
+            'EEE': 'EEE Lab',
+            'OOPJ_LAB': 'Java Lab',
+            'MONGODB': 'MongoDB Lab',
+            'DBMS_LAB': 'DBMS Lab',
+            'MENTOR': 'Mentoring',
+            'CRT': 'CRT'
+        };
+
+        let appData = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let loggerDate = null;
+
+        function loadData() {
+            const stored = localStorage.getItem('attendanceTrackerData');
+            if (stored) {
+                try {
+                    appData = JSON.parse(stored);
+                    if (!appData.semesters) appData.semesters = DEFAULT_DATA.semesters;
+                    if (!appData.activeSemesterId) appData.activeSemesterId = DEFAULT_DATA.activeSemesterId;
+                    if (!appData.settings) appData.settings = DEFAULT_DATA.settings;
+                    if (!appData.settings.workingDays) appData.settings.workingDays = 'monday';
+                    return;
+                } catch (e) {
+                    console.warn('Failed to parse stored data, using defaults');
+                }
+            }
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            saveData();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('attendanceTrackerData', JSON.stringify(appData));
+            } catch (e) {
+                console.warn('Failed to save data:', e);
+            }
+        }
+
+        function getActiveSemester() {
+            return appData.semesters.find(s => s.id === appData.activeSemesterId) || appData.semesters[0];
+        }
+
+        function getSemesterRecords() {
+            const sem = getActiveSemester();
+            return sem.records || {};
+        }
+
+        function getExcusedDays() {
+            const sem = getActiveSemester();
+            return sem.excusedDays || {};
+        }
+
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function isWorkingDay(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const day = date.getDay();
+            const settings = appData.settings;
+            if (settings.workingDays === 'sunday') {
+                return day !== 0;
+            } else if (settings.workingDays === 'all') {
+                return true;
+            } else {
+                return day !== 0;
+            }
+        }
+
+        function getDayName(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+        }
+
+        function getPeriodsForDay(dateStr) {
+            const dayName = getDayName(dateStr);
+            const timetable = TIMETABLE[dayName];
+            if (!timetable) return [];
+            return timetable.periods;
+        }
+
+        function getLabInfo(dateStr) {
+            const periods = getPeriodsForDay(dateStr);
+            const labPeriods = periods.filter(p => p.type === 'lab');
+            if (labPeriods.length === 0) return null;
+            return {
+                code: labPeriods[0].code,
+                name: SUBJECT_NAMES[labPeriods[0].code] || labPeriods[0].subject,
+                count: labPeriods.length,
+                periods: labPeriods.map(p => p.period)
+            };
+        }
+
+        function getTheorySubjects(dateStr) {
+            const periods = getPeriodsForDay(dateStr);
+            const theory = periods.filter(p => p.type === 'theory' && p.code);
+            return theory.map(p => ({
+                code: p.code,
+                name: SUBJECT_NAMES[p.code] || p.subject,
+                period: p.period
+            }));
+        }
+
+        function renderAll() {
+            renderCalendar();
+            renderStats();
+            renderSubjectStats();
+            renderTarget();
+        }
+
+        function renderCalendar() {
+            const sem = getActiveSemester();
+            const records = sem.records || {};
+            const excused = sem.excusedDays || {};
+            const today = getTodayString();
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startDayOfWeek = firstDay.getDay();
+            
+            const container = document.getElementById('calendarGrid');
+            const label = document.getElementById('monthLabel');
+            label.textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            
+            let html = '';
+            const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayLabels.forEach(d => {
+                html += `<div class="day-label">${d}</div>`;
+            });
+            
+            for (let i = 0; i < startDayOfWeek; i++) {
+                html += `<div class="day-cell" style="opacity:0.2;"></div>`;
+            }
+            
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const date = new Date(currentYear, currentMonth, d);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = dateStr === today;
+                const isPast = date <= new Date();
+                const isExcused = excused[dateStr] || false;
+                const isWorking = isWorkingDay(dateStr);
+                const dayOfWeek = date.getDay();
+                const isWeekend = dayOfWeek === 0;
+                
+                let cellClass = 'day-cell';
+                let indicatorClass = 'gray';
+                let content = d;
+                
+                if (!isPast) {
+                    cellClass += ' future';
+                } else if (isExcused) {
+                    cellClass += ' excused';
+                    indicatorClass = 'gray';
+                } else if (isWeekend) {
+                    cellClass += ' weekend';
+                    indicatorClass = 'gray';
+                } else if (records[dateStr] && records[dateStr]._logged) {
+                    const hours = records[dateStr]._totalHours || 0;
+                    const totalPeriods = getPeriodsForDay(dateStr).filter(p => p.type !== 'free' && p.code).length;
+                    const pct = totalPeriods > 0 ? (hours / totalPeriods) * 100 : 0;
+                    
+                    if (pct >= 90) indicatorClass = 'green';
+                    else if (pct >= 60) indicatorClass = 'yellow';
+                    else if (pct >= 30) indicatorClass = 'orange';
+                    else indicatorClass = 'red';
+                } else if (isPast && isWorking && !isWeekend) {
+                    indicatorClass = 'red';
+                }
+                
+                if (isToday) cellClass += ' today';
+                
+                const clickHandler = isPast && isWorking && !isWeekend && !isExcused ? `onclick="openLoggerForDate('${dateStr}')"` : '';
+                const excusedHandler = isPast && isWorking && !isWeekend ? `oncontextmenu="toggleExcused('${dateStr}');return false;"` : '';
+                
+                html += `
+                    <div class="${cellClass}" ${clickHandler} ${excusedHandler}>
+                        <span class="date">${content}</span>
+                        <span class="indicator ${indicatorClass}"></span>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function renderStats() {
+            const sem = getActiveSemester();
+            const records = sem.records || {};
+            const excused = sem.excusedDays || {};
+            const startDate = new Date(sem.startDate + 'T00:00:00');
+            const endDate = new Date(sem.endDate + 'T00:00:00');
+            const today = new Date();
+            
+            let totalHours = 0;
+            let totalPossible = 0;
+            let daysLogged = 0;
+            let perfectDays = 0;
+            let streakDays = 0;
+            let currentStreak = 0;
+
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate && currentDate <= today) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const isExcused = excused[dateStr] || false;
+                const isWorking = isWorkingDay(dateStr);
+                
+                if (isWorking && !isExcused) {
+                    const periods = getPeriodsForDay(dateStr);
+                    const theoryCount = periods.filter(p => p.type === 'theory' && p.code).length;
+                    const labInfo = getLabInfo(dateStr);
+                    const labHours = labInfo ? labInfo.count : 0;
+                    const dayTotal = theoryCount + labHours;
+                    totalPossible += dayTotal;
+                    
+                    if (records[dateStr] && records[dateStr]._logged) {
+                        const hours = records[dateStr]._totalHours || 0;
+                        totalHours += hours;
+                        daysLogged++;
+                        if (hours === dayTotal) perfectDays++;
+                        currentStreak++;
+                    } else {
+                        if (currentStreak > streakDays) streakDays = currentStreak;
+                        currentStreak = 0;
+                    }
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            if (currentStreak > streakDays) streakDays = currentStreak;
+
+            const percentage = totalPossible > 0 ? Math.round((totalHours / totalPossible) * 100) : 0;
+
+            document.getElementById('overallPercent').textContent = percentage + '%';
+            document.getElementById('totalHours').textContent = totalHours;
+            document.getElementById('daysLogged').textContent = daysLogged;
+            document.getElementById('streakCount').textContent = streakDays;
+            document.getElementById('perfectDays').textContent = perfectDays;
+            document.getElementById('targetStatus').textContent = percentage >= 75 ? '✅ 75%+' : percentage >= 60 ? '⚠️ 60%+' : '🚨 ' + percentage + '%';
+        }
+
+        function renderSubjectStats() {
+            const sem = getActiveSemester();
+            const records = sem.records || {};
+            const excused = sem.excusedDays || {};
+            const startDate = new Date(sem.startDate + 'T00:00:00');
+            const endDate = new Date(sem.endDate + 'T00:00:00');
+            const today = new Date();
+            
+            const subjectMap = {};
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate && currentDate <= today) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const isExcused = excused[dateStr] || false;
+                const isWorking = isWorkingDay(dateStr);
+                
+                if (isWorking && !isExcused) {
+                    const periods = getPeriodsForDay(dateStr);
+                    periods.forEach(p => {
+                        if (p.code && p.type === 'theory') {
+                            if (!subjectMap[p.code]) {
+                                subjectMap[p.code] = { total: 0, attended: 0, name: SUBJECT_NAMES[p.code] || p.subject };
+                            }
+                            subjectMap[p.code].total += 1;
+                            if (records[dateStr] && records[dateStr][p.code]) {
+                                subjectMap[p.code].attended += 1;
+                            }
+                        }
+                    });
+                    const labInfo = getLabInfo(dateStr);
+                    if (labInfo) {
+                        if (!subjectMap[labInfo.code]) {
+                            subjectMap[labInfo.code] = { total: 0, attended: 0, name: labInfo.name };
+                        }
+                        subjectMap[labInfo.code].total += labInfo.count;
+                        if (records[dateStr] && records[dateStr][labInfo.code]) {
+                            subjectMap[labInfo.code].attended += labInfo.count;
+                        }
+                    }
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            const container = document.getElementById('subjectStatsContainer');
+            
+            const entries = Object.entries(subjectMap).filter(([_, data]) => data.total > 0);
+            if (entries.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:8px;">No subject data yet. Start logging!</div>';
+                return;
+            }
+
+            let html = '';
+            entries.forEach(([code, data]) => {
+                const pct = data.total > 0 ? Math.round((data.attended / data.total) * 100) : 0;
+                let colorClass = 'green';
+                if (pct < 60) colorClass = 'red';
+                else if (pct < 75) colorClass = 'yellow';
+                
+                html += `
+                    <div class="subject-stat">
+                        <span class="name">${data.name}</span>
+                        <div class="bar">
+                            <div class="bar-fill ${colorClass}" style="width:${Math.min(pct,100)}%"></div>
+                        </div>
+                        <span class="pct ${colorClass}">${pct}%</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderTarget() {
+            const sem = getActiveSemester();
+            const records = sem.records || {};
+            const excused = sem.excusedDays || {};
+            const startDate = new Date(sem.startDate + 'T00:00:00');
+            const endDate = new Date(sem.endDate + 'T00:00:00');
+        const today = new Date();
+        
+        let totalHours = 0;
+        let totalPossible = 0;
+        let remainingPossible = 0;
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const isExcused = excused[dateStr] || false;
+            const isWorking = isWorkingDay(dateStr);
+            const isPast = currentDate <= today;
+            
+            if (isWorking && !isExcused) {
+                const periods = getPeriodsForDay(dateStr);
+                const theoryCount = periods.filter(p => p.type === 'theory' && p.code).length;
+                const labInfo = getLabInfo(dateStr);
+                const labHours = labInfo ? labInfo.count : 0;
+                const dayTotal = theoryCount + labHours;
+                
+                if (isPast) {
+                    totalPossible += dayTotal;
+                    if (records[dateStr] && records[dateStr]._logged) {
+                        totalHours += records[dateStr]._totalHours || 0;
+                    }
+                } else {
+                    remainingPossible += dayTotal;
+                }
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const currentPct = totalPossible > 0 ? (totalHours / totalPossible) * 100 : 0;
+        const targetPct = 75;
+        
+        const display = document.getElementById('targetDisplay');
+        const detail = document.getElementById('targetDetail');
+
+        if (totalPossible === 0) {
+            display.textContent = '📊 No data yet';
+            detail.textContent = 'Start logging to see your target!';
+            return;
+        }
+
+        if (currentPct >= targetPct) {
+            const maxTotal = totalPossible + remainingPossible;
+            const targetTotal = 75 / 100 * maxTotal;
+            const allowedBunk = maxTotal - targetTotal;
+            const allowedBunkHours = Math.floor(allowedBunk - totalHours);
+            const allowedFullDays = Math.floor(allowedBunkHours / 6);
+            
+            if (allowedBunkHours >= 0) {
+                display.innerHTML = `🎉 <span class="safe">SAFE</span>`;
+                detail.textContent = `You can bunk ${allowedFullDays} full days (${allowedBunkHours} hours) and stay above 75%!`;
+            } else {
+                display.innerHTML = `⚠️ <span class="warning">WARNING</span>`;
+                detail.textContent = `You're above 75%, but you have no bunk budget left. Stay consistent!`;
+            }
+        } else {
+            const targetTotal = targetPct / 100 * (totalPossible + remainingPossible);
+            const hoursNeeded = Math.ceil(targetTotal - totalHours);
+            const fullDaysNeeded = Math.ceil(hoursNeeded / 6);
+            
+            display.innerHTML = `🚨 <span class="danger">${currentPct.toFixed(1)}%</span>`;
+            detail.textContent = `You need ${hoursNeeded} more hours (${fullDaysNeeded} full days) to reach 75%.`;
+        }
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        renderCalendar();
+    }
+
+    function openLogger() {
+        loggerDate = getTodayString();
+        openLoggerForDate(loggerDate);
+    }
+
+    function openLoggerForDate(dateStr) {
+        loggerDate = dateStr;
+        const modal = document.getElementById('loggerModal');
+        modal.classList.remove('hidden');
+        
+        const records = getSemesterRecords();
+        const excused = getExcusedDays();
+        
+        const dateDisplay = document.getElementById('loggerDate');
+        dateDisplay.textContent = new Date(dateStr).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+        
+        if (excused[dateStr]) {
+            document.getElementById('subjectContainer').innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);">🛑 This day is marked as excused.</div>`;
+            document.getElementById('loggerStatus').textContent = 'Excused - no logging required';
+            return;
+        }
+        
+        if (!isWorkingDay(dateStr)) {
+            document.getElementById('subjectContainer').innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);">🎉 Weekend / Holiday</div>`;
+            document.getElementById('loggerStatus').textContent = 'No classes on this day';
+            return;
+        }
+        
+        const theorySubjects = getTheorySubjects(dateStr);
+        const labInfo = getLabInfo(dateStr);
+        const logged = records[dateStr] || {};
+        
+        let html = '';
+        let totalChecked = 0;
+        
+        if (labInfo) {
+            const isChecked = logged[labInfo.code] || false;
+            if (isChecked) totalChecked += labInfo.count;
+            html += `<div class="subject-chip lab-chip ${isChecked ? 'checked' : ''}" 
+                         onclick="toggleSubject('${dateStr}','${labInfo.code}')">
+                🧪 ${labInfo.name} (${labInfo.count}h)
+            </div>`;
+        }
+        
+        theorySubjects.forEach(sub => {
+            const isChecked = logged[sub.code] || false;
+            if (isChecked) totalChecked += 1;
+            html += `<div class="subject-chip ${isChecked ? 'checked' : ''}" 
+                         onclick="toggleSubject('${dateStr}','${sub.code}')">
+                ${sub.name}
+            </div>`;
+        });
+        
+        document.getElementById('subjectContainer').innerHTML = html;
+        
+        const totalPeriods = theorySubjects.length + (labInfo ? labInfo.count : 0);
+        document.getElementById('loggerStatus').textContent = `Selected: ${totalChecked} / ${totalPeriods} hours`;
+    }
+
+    function toggleSubject(dateStr, subjectCode) {
+        const records = getSemesterRecords();
+        if (!records[dateStr]) records[dateStr] = {};
+        records[dateStr][subjectCode] = !records[dateStr][subjectCode];
+        delete records[dateStr]._logged;
+        saveData();
+        openLoggerForDate(dateStr);
+    }
+
+    function markAllPresent() {
+        const records = getSemesterRecords();
+        if (!records[loggerDate]) records[loggerDate] = {};
+        
+        const theorySubjects = getTheorySubjects(loggerDate);
+        const labInfo = getLabInfo(loggerDate);
+        
+        theorySubjects.forEach(sub => {
+            records[loggerDate][sub.code] = true;
+        });
+        if (labInfo) {
+            records[loggerDate][labInfo.code] = true;
+        }
+        delete records[loggerDate]._logged;
+        saveData();
+        openLoggerForDate(loggerDate);
+        showToast('✅ All marked present!', 'success');
+    }
+
+    function markAllAbsent() {
+        const records = getSemesterRecords();
+        if (!records[loggerDate]) records[loggerDate] = {};
+        
+        const theorySubjects = getTheorySubjects(loggerDate);
+        const labInfo = getLabInfo(loggerDate);
+        
+        theorySubjects.forEach(sub => {
+            records[loggerDate][sub.code] = false;
+        });
+        if (labInfo) {
+            records[loggerDate][labInfo.code] = false;
+        }
+        delete records[loggerDate]._logged;
+        saveData();
+        openLoggerForDate(loggerDate);
+        showToast('❌ All marked absent', 'info');
+    }
+
+    function logToday() {
+        const records = getSemesterRecords();
+        
+        const excused = getExcusedDays();
+        if (excused[loggerDate]) {
+            showToast('This day is excused. No logging needed.', 'info');
+            closeLogger();
+            return;
+        }
+        if (!isWorkingDay(loggerDate)) {
+            showToast('Weekend/Holiday!', 'info');
+            closeLogger();
+            return;
+        }
+        
+        if (!records[loggerDate]) records[loggerDate] = {};
+        
+        const theorySubjects = getTheorySubjects(loggerDate);
+        const labInfo = getLabInfo(loggerDate);
+        let totalChecked = 0;
+        
+        theorySubjects.forEach(sub => {
+            if (records[loggerDate][sub.code]) totalChecked++;
+        });
+        if (labInfo && records[loggerDate][labInfo.code]) {
+            totalChecked += labInfo.count;
+        }
+        
+        const totalPeriods = theorySubjects.length + (labInfo ? labInfo.count : 0);
+        
+        if (totalChecked === 0) {
+            showToast('⚠️ You haven\'t marked any subjects!', 'error');
+            return;
+        }
+        
+        records[loggerDate]._logged = true;
+        records[loggerDate]._totalHours = totalChecked;
+        saveData();
+        closeLogger();
+        renderAll();
+        showToast(`✅ Logged ${totalChecked}/${totalPeriods} hours!`, 'success');
+    }
+
+    function closeLogger() {
+        document.getElementById('loggerModal').classList.add('hidden');
+    }
+
+    function toggleExcused(dateStr) {
+        const sem = getActiveSemester();
+        if (!sem.excusedDays) sem.excusedDays = {};
+        if (sem.excusedDays[dateStr]) {
+            delete sem.excusedDays[dateStr];
+            showToast('Removed excused status', 'info');
+        } else {
+            sem.excusedDays[dateStr] = true;
+            if (sem.records && sem.records[dateStr]) {
+                delete sem.records[dateStr];
+            }
+            showToast('Marked as excused ✅', 'success');
+        }
+        saveData();
+        renderAll();
+    }
+
+    function showToast(message, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type || ''}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
+    function openSettings() {
+        document.getElementById('settingsModal').classList.remove('hidden');
+        const sem = getActiveSemester();
+        document.getElementById('semesterStart').value = sem.startDate || '';
+        document.getElementById('semesterEnd').value = sem.endDate || '';
+        document.getElementById('workingDays').value = appData.settings.workingDays || 'monday';
+        document.getElementById('githubToken').value = appData.settings.githubToken || '';
+        document.getElementById('githubRepo').value = appData.settings.githubRepo || '';
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function saveSettings() {
+        const sem = getActiveSemester();
+        sem.startDate = document.getElementById('semesterStart').value;
+        sem.endDate = document.getElementById('semesterEnd').value;
+        appData.settings.workingDays = document.getElementById('workingDays').value;
+        appData.settings.githubToken = document.getElementById('githubToken').value;
+        appData.settings.githubRepo = document.getElementById('githubRepo').value;
+        saveData();
+        closeSettings();
+        renderAll();
+        showToast('✅ Settings saved!', 'success');
+    }
+
+    function backupToGitHub() {
+        const token = appData.settings.githubToken;
+        const repo = appData.settings.githubRepo;
+        
+        if (!token || !repo) {
+            showToast('⚠️ Set GitHub Token and Repo in Settings first!', 'error');
+            return;
+        }
+        
+        const dataStr = JSON.stringify(appData, null, 2);
+        const content = btoa(unescape(encodeURIComponent(dataStr)));
+        const path = 'attendance_backup.json';
+        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+        
+        fetch(url, {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        })
+        .then(res => {
+            if (res.status === 404) {
+                return fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Backup attendance - ${new Date().toISOString().split('T')[0]}`,
+                        content: content
+                    })
+                });
+            } else if (res.ok) {
+                return res.json().then(data => {
+                    return fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Update backup - ${new Date().toISOString().split('T')[0]}`,
+                            content: content,
+                            sha: data.sha
+                        })
+                    });
+                });
+            } else {
+                throw new Error('Failed to check file');
+            }
+        })
+        .then(res => {
+            if (res.ok) {
+                showToast('☁️ Backed up to GitHub!', 'success');
+            } else {
+                throw new Error('Backup failed');
+            }
+        })
+        .catch(err => {
+            showToast('❌ Backup failed: ' + err.message, 'error');
+        });
+    }
+
+    function resetAllData() {
+        if (confirm('⚠️ Delete ALL data? This cannot be undone!')) {
+            if (confirm('Really? All attendance records will be lost!')) {
+                localStorage.removeItem('attendanceTrackerData');
+                appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                saveData();
+                renderAll();
+                showToast('🗑️ All data reset', 'info');
+                closeSettings();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadData();
+        renderAll();
+        setInterval(saveData, 30000);
+        console.log('📚 Hybrid Attendance Tracker loaded successfully!');
+        console.log('💡 Tap any day to log attendance.');
+        console.log('💡 Long-press any day to mark as Excused (holiday/sick).');
+        console.log('💡 Tap the + button to log today.');
+    });
+
+</script>
+</body>
+</html>
